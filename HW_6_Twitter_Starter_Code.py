@@ -1,13 +1,15 @@
 #########################################
-##### Name:                         #####
-##### Uniqname:                     #####
+##### Name:      Zhexin Wu          #####
+##### Uniqname:   zhexinwu          #####
 #########################################
 
 from requests_oauthlib import OAuth1
 import json
 import requests
 
-import hw6_secrets_starter as secrets # file that contains your OAuth credentials
+import secrets # file that contains your OAuth credentials
+
+from collections import Counter
 
 CACHE_FILENAME = "twitter_cache.json"
 CACHE_DICT = {}
@@ -97,7 +99,12 @@ def construct_unique_key(baseurl, params):
         the unique key as a string
     '''
     #TODO Implement function
-    pass
+    connector = "_"
+    unique_key = baseurl
+    for key in params:
+        unique_key += connector + f"{key}_{params[key]}"
+
+    return unique_key
 
 
 def make_request(baseurl, params):
@@ -117,7 +124,8 @@ def make_request(baseurl, params):
         a dictionary
     '''
     #TODO Implement function
-    pass
+    resp = requests.get(baseurl, params=params, auth=oauth)
+    return resp.json()
 
 
 def make_request_with_cache(baseurl, hashtag, count):
@@ -129,7 +137,7 @@ def make_request_with_cache(baseurl, hashtag, count):
     If the result is in your cache, print "fetching cached data"
     If you request a new result using make_request(), print "making new request"
 
-    Do no include the print statements in your return statement. Just print them as appropriate.
+    Do not include the print statements in your return statement. Just print them as appropriate.
     This, of course, does not ensure that you correctly retrieved that data from your cache, 
     but it will help us to see if you are appropriately attempting to use the cache.
     
@@ -138,9 +146,9 @@ def make_request_with_cache(baseurl, hashtag, count):
     baseurl: string
         The URL for the API endpoint
     hashtag: string
-        The hashtag to search for
+        The hashtag to search
     count: integer
-        The number of results you request from Twitter
+        The number of tweets to retrieve
     
     Returns
     -------
@@ -149,7 +157,17 @@ def make_request_with_cache(baseurl, hashtag, count):
         JSON
     '''
     #TODO Implement function
-    pass
+    params = {"q": hashtag.lower(), "count": count}
+    unique_key = construct_unique_key(baseurl, params)
+    if unique_key in CACHE_DICT:
+        print("fetching cached data")
+        return CACHE_DICT[unique_key]
+    else:
+        print("making new requests")
+        results = make_request(baseurl, params)
+        CACHE_DICT[unique_key] = results
+        save_cache(CACHE_DICT)
+        return results
 
 
 def find_most_common_cooccurring_hashtag(tweet_data, hashtag_to_ignore):
@@ -171,18 +189,28 @@ def find_most_common_cooccurring_hashtag(tweet_data, hashtag_to_ignore):
         queried in make_request_with_cache()
 
     '''
-    # TODO: Implement function 
-    pass
+    # TODO: Implement function
     ''' Hint: In case you're confused about the hashtag_to_ignore 
     parameter, we want to ignore the hashtag we queried because it would 
     definitely be the most occurring hashtag, and we're trying to find 
     the most commonly co-occurring hashtag with the one we queried (so 
     we're essentially looking for the second most commonly occurring 
     hashtags).'''
+    counter = Counter()
+    for tweet in tweet_data["statuses"]:
+        hash_tags = tweet["entities"]["hashtags"]
+        for tag in hash_tags:
+            key = f"#{tag['text']}"
+            if key.lower() == hashtag_to_ignore.lower():
+                continue
+            counter[key] += 1
 
-    
+    return counter.most_common(1)[0][0]
+
 
 if __name__ == "__main__":
+    # print(test_oauth())
+
     if not client_key or not client_secret:
         print("You need to fill in CLIENT_KEY and CLIENT_SECRET in secret_data.py.")
         exit()
@@ -194,6 +222,7 @@ if __name__ == "__main__":
 
     baseurl = "https://api.twitter.com/1.1/search/tweets.json"
     hashtag = "#MarchMadness2021"
+    # hashtag = "#marchMADness2021"
     count = 100
 
     tweet_data = make_request_with_cache(baseurl, hashtag, count)
