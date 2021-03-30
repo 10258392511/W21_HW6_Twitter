@@ -157,13 +157,13 @@ def make_request_with_cache(baseurl, hashtag, count):
         JSON
     '''
     #TODO Implement function
-    params = {"q": hashtag.lower(), "count": count}
+    params = {"count": count, "q": hashtag.lower()}
     unique_key = construct_unique_key(baseurl, params)
     if unique_key in CACHE_DICT:
         print("fetching cached data")
         return CACHE_DICT[unique_key]
     else:
-        print("making new requests")
+        print("making new request")
         results = make_request(baseurl, params)
         CACHE_DICT[unique_key] = results
         save_cache(CACHE_DICT)
@@ -197,6 +197,10 @@ def find_most_common_cooccurring_hashtag(tweet_data, hashtag_to_ignore):
     we're essentially looking for the second most commonly occurring 
     hashtags).'''
     counter = Counter()
+    # for i, tweet in enumerate(tweet_data["statuses"]):
+    #     print(i)
+    #     print(tweet["entities"]["hashtags"])
+    #     print("-" * 40)
     for tweet in tweet_data["statuses"]:
         hash_tags = tweet["entities"]["hashtags"]
         for tag in hash_tags:
@@ -205,7 +209,8 @@ def find_most_common_cooccurring_hashtag(tweet_data, hashtag_to_ignore):
                 continue
             counter[key] += 1
 
-    return counter.most_common(1)[0][0]
+    # print(counter)
+    return counter.most_common(1)[0][0][1:].lower()
 
 
 if __name__ == "__main__":
